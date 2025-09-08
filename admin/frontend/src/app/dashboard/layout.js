@@ -3,27 +3,13 @@ import Navbar from "../../components/Navbar";
 
 export default function DashboardLayout({ children }) {
     return (
-        <div className="min-h-screen bg-gray-100 flex">
-            <div
-                style={{
-                    position: "sticky",
-                    top: 0,
-                    height: "100vh",
-                    zIndex: 30,
-                }}
-            >
-                <Sidebar />
-            </div>
-            <div
-                className="flex-1 flex flex-col"
-                style={{ minHeight: "100vh" }}
-            >
-                <div style={{ position: "sticky", top: 0, zIndex: 40 }}>
-                    <Navbar />
-                </div>
-                <div style={{ flex: 1, overflowY: "auto", height: "100%" }}>
-                    {children}
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+            <Sidebar />
+            <div className="min-h-screen">
+                <Navbar />
+                <main className="ml-64 min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+                    <div className="p-6">{children}</div>
+                </main>
             </div>
         </div>
     );

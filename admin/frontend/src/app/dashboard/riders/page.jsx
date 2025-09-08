@@ -196,212 +196,383 @@ export default function RidersPage() {
     };
 
     if (loading) {
-        return <div className="p-8 text-black">Loading riders...</div>;
+        return (
+            <div className="flex items-center justify-center min-h-96">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600 font-medium">
+                        Loading riders...
+                    </p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4 text-black">Riders</h1>
-            <button
-                className="mb-4 bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700"
-                onClick={handleAddRider}
-            >
-                Add Rider
-            </button>
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <h2 className="text-lg font-semibold mb-2 text-black">
-                        Riders per Status
-                    </h2>
-                    <Bar
-                        data={barData}
-                        options={{
-                            responsive: true,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                x: { ticks: { color: "#111" } },
-                                y: { ticks: { color: "#111" } },
-                            },
-                        }}
-                    />
-                </div>
-                <div>
-                    <h2 className="text-lg font-semibold mb-2 text-black">
-                        Active vs Inactive
-                    </h2>
-                    <Pie
-                        data={pieData}
-                        options={{
-                            responsive: true,
-                            plugins: { legend: { labels: { color: "#111" } } },
-                        }}
-                    />
-                </div>
-                <div>
-                    <h2 className="text-lg font-semibold mb-2 text-black">
-                        Last Login (Day)
-                    </h2>
-                    <Line
-                        data={lineData}
-                        options={{
-                            responsive: true,
-                            plugins: { legend: { labels: { color: "#111" } } },
-                            scales: {
-                                x: { ticks: { color: "#111" } },
-                                y: { ticks: { color: "#111" } },
-                            },
-                        }}
-                    />
+        <div className="space-y-8">
+            {/* Header Section */}
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-8">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <span className="text-white text-3xl">🏍️</span>
+                        </div>
+                        <div>
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                Riders Management
+                            </h1>
+                            <p className="text-gray-600 mt-2">
+                                Manage and monitor your delivery riders
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-3"
+                        onClick={handleAddRider}
+                    >
+                        <span className="text-xl">➕</span>
+                        <span>Add New Rider</span>
+                    </button>
                 </div>
             </div>
-            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                <thead>
-                    <tr>
-                        <th className="px-4 py-2 border-b text-black">ID</th>
-                        <th className="px-4 py-2 border-b text-black">
-                            Username
-                        </th>
-                        <th className="px-4 py-2 border-b text-black">Email</th>
-                        <th className="px-4 py-2 border-b text-black">Phone</th>
-                        <th className="px-4 py-2 border-b text-black">
-                            Status
-                        </th>
-                        <th className="px-4 py-2 border-b text-black">
-                            Active
-                        </th>
-                        <th className="px-4 py-2 border-b text-black">
-                            Last Login
-                        </th>
-                        <th className="px-4 py-2 border-b text-black">
-                            Actions
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {riders.map((rider) => (
-                        <tr
-                            key={rider.id}
-                            className="cursor-pointer hover:bg-gray-100"
-                            onClick={() => handleEditRider(rider)}
-                        >
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.id}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.username}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.email}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.phone}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.status}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.isActive ? "Active" : "Inactive"}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                {rider.lastLogin}
-                            </td>
-                            <td className="px-4 py-2 border-b text-black">
-                                <button
-                                    className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteRider(rider.id);
-                                    }}
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-sm">📊</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                            Riders per Status
+                        </h2>
+                    </div>
+                    <div className="h-80">
+                        <Bar
+                            data={barData}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                                        titleColor: "white",
+                                        bodyColor: "white",
+                                        borderColor: "rgba(255, 255, 255, 0.2)",
+                                        borderWidth: 1,
+                                        cornerRadius: 10,
+                                    },
+                                },
+                                scales: {
+                                    x: {
+                                        ticks: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        grid: { display: false },
+                                    },
+                                    y: {
+                                        ticks: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                                    },
+                                },
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-sm">🟢</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                            Active vs Inactive
+                        </h2>
+                    </div>
+                    <div className="h-80">
+                        <Pie
+                            data={pieData}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        labels: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        position: "bottom",
+                                    },
+                                    tooltip: {
+                                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                                        titleColor: "white",
+                                        bodyColor: "white",
+                                        borderColor: "rgba(255, 255, 255, 0.2)",
+                                        borderWidth: 1,
+                                        cornerRadius: 10,
+                                    },
+                                },
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-6 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-sm">📅</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                            Last Login Activity
+                        </h2>
+                    </div>
+                    <div className="h-80">
+                        <Line
+                            data={lineData}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        labels: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        position: "top",
+                                    },
+                                    tooltip: {
+                                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                                        titleColor: "white",
+                                        bodyColor: "white",
+                                        borderColor: "rgba(255, 255, 255, 0.2)",
+                                        borderWidth: 1,
+                                        cornerRadius: 10,
+                                    },
+                                },
+                                scales: {
+                                    x: {
+                                        ticks: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                                    },
+                                    y: {
+                                        ticks: {
+                                            color: "#4B5563",
+                                            font: { weight: "bold" },
+                                        },
+                                        grid: { color: "rgba(0, 0, 0, 0.05)" },
+                                    },
+                                },
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Data Table */}
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                        <span className="text-2xl">🏍️</span>
+                        Riders Details
+                    </h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    ID
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Username
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Email
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Phone
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Active
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Last Login
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {riders.map((rider) => (
+                                <tr
+                                    key={rider.id}
+                                    className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                                    onClick={() => handleEditRider(rider)}
                                 >
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        #{rider.id}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {rider.username}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {rider.email}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {rider.phone}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                rider.status === "active"
+                                                    ? "bg-green-100 text-green-800"
+                                                    : rider.status ===
+                                                      "inactive"
+                                                    ? "bg-red-100 text-red-800"
+                                                    : "bg-yellow-100 text-yellow-800"
+                                            }`}
+                                        >
+                                            {rider.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span
+                                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                rider.isActive
+                                                    ? "bg-green-100 text-green-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                            }`}
+                                        >
+                                            {rider.isActive
+                                                ? "Active"
+                                                : "Inactive"}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        {rider.lastLogin}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                            className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteRider(rider.id);
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             {/* Rider Form Modal */}
             {showForm && (
                 <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
                     <form
-                        className="bg-white p-6 rounded-lg shadow-lg min-w-[320px]"
+                        className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/20 min-w-[400px]"
                         onSubmit={handleFormSubmit}
                     >
-                        <h2 className="text-xl font-bold mb-4 text-black">
-                            {formType === "add" ? "Add Rider" : "Edit Rider"}
+                        <h2 className="text-2xl font-bold mb-6 text-gray-900 flex items-center gap-3">
+                            <span className="text-3xl">🏍️</span>
+                            {formType === "add"
+                                ? "Add New Rider"
+                                : "Edit Rider"}
                         </h2>
-                        <div className="mb-2">
-                            <label className="block text-black mb-1">
-                                Username
-                            </label>
-                            <input
-                                name="username"
-                                defaultValue={selectedRider?.username || ""}
-                                required
-                                className="w-full border px-2 py-1 rounded"
-                            />
-                        </div>
-                        <div className="mb-2">
-                            <label className="block text-black mb-1">
-                                Email
-                            </label>
-                            <input
-                                name="email"
-                                type="email"
-                                defaultValue={selectedRider?.email || ""}
-                                required
-                                className="w-full border px-2 py-1 rounded"
-                            />
-                        </div>
-                        <div className="mb-2">
-                            <label className="block text-black mb-1">
-                                Phone
-                            </label>
-                            <input
-                                name="phone"
-                                defaultValue={selectedRider?.phone || ""}
-                                required
-                                className="w-full border px-2 py-1 rounded"
-                            />
-                        </div>
-                        <div className="mb-2">
-                            <label className="block text-black mb-1">
-                                Status
-                            </label>
-                            <select
-                                name="status"
-                                defaultValue={selectedRider?.status || "active"}
-                                className="w-full border px-2 py-1 rounded"
-                            >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="suspended">Suspended</option>
-                            </select>
-                        </div>
-                        <div className="mb-4">
-                            <label className="inline-flex items-center">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Username
+                                </label>
+                                <input
+                                    name="username"
+                                    defaultValue={selectedRider?.username || ""}
+                                    required
+                                    className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    placeholder="Enter username"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    defaultValue={selectedRider?.email || ""}
+                                    required
+                                    className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    placeholder="Enter email"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Phone
+                                </label>
+                                <input
+                                    name="phone"
+                                    defaultValue={selectedRider?.phone || ""}
+                                    required
+                                    className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    placeholder="Enter phone number"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Status
+                                </label>
+                                <select
+                                    name="status"
+                                    defaultValue={
+                                        selectedRider?.status || "active"
+                                    }
+                                    className="w-full border border-gray-300 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="suspended">Suspended</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-3">
                                 <input
                                     name="isActive"
                                     type="checkbox"
                                     defaultChecked={
                                         selectedRider?.isActive === 1
                                     }
-                                    className="mr-2"
+                                    className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
                                 />
-                                <span className="text-black">Is Active</span>
-                            </label>
+                                <label className="text-gray-700 font-medium">
+                                    Is Active
+                                </label>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3 mt-8">
                             <button
                                 type="submit"
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                             >
-                                {formType === "add" ? "Add" : "Update"}
+                                {formType === "add"
+                                    ? "Add Rider"
+                                    : "Update Rider"}
                             </button>
                             <button
                                 type="button"
-                                className="bg-gray-300 px-4 py-2 rounded"
+                                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors duration-200"
                                 onClick={() => setShowForm(false)}
                             >
                                 Cancel
@@ -414,22 +585,24 @@ export default function RidersPage() {
             {/* Delete Confirmation Dialog */}
             {showDeleteDialog && (
                 <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg min-w-[320px]">
-                        <h2 className="text-xl font-bold mb-4 text-black">
+                    <div className="bg-white/95 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/20 min-w-[400px]">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 flex items-center gap-3">
+                            <span className="text-3xl">⚠️</span>
                             Confirm Delete
                         </h2>
-                        <p className="mb-4 text-black">
-                            Are you sure you want to delete this rider?
+                        <p className="mb-6 text-gray-600">
+                            Are you sure you want to delete this rider? This
+                            action cannot be undone.
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
-                                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                                 onClick={confirmDeleteRider}
                             >
-                                Delete
+                                Delete Rider
                             </button>
                             <button
-                                className="bg-gray-300 px-4 py-2 rounded"
+                                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors duration-200"
                                 onClick={() => setShowDeleteDialog(false)}
                             >
                                 Cancel
