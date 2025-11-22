@@ -1,12 +1,14 @@
-import { db } from '../db/index.js';
-import { inventoryUsers as usersTable } from '@justoo/db';
-import { eq, and } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { db } from "../db/index.js";
+import { inventoryUsers as usersTable } from "@justoo/db";
+import { eq, and, ne } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 // JWT Secret - In production, this should be in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const JWT_SECRET =
+    process.env.JWT_SECRET ||
+    "your-super-secret-jwt-key-change-this-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
 
 // Login function
 export const login = async (req, res) => {
@@ -17,17 +19,19 @@ export const login = async (req, res) => {
         if (!username || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Username and password are required'
+                message: "Username and password are required",
             });
         }
 
         // Find user by username or email
-        const user = await db.select().from(usersTable)
+        const user = await db
+            .select()
+            .from(usersTable)
             .where(
                 and(
                     eq(usersTable.isActive, 1),
                     // Allow login with either username or email
-                    username.includes('@')
+                    username.includes("@")
                         ? eq(usersTable.email, username.toLowerCase())
                         : eq(usersTable.username, username.toLowerCase())
                 )
@@ -36,27 +40,31 @@ export const login = async (req, res) => {
         if (user.length === 0) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: "Invalid credentials",
             });
         }
 
         const foundUser = user[0];
 
         // Verify password
-        const isPasswordValid = await bcrypt.compare(password, foundUser.password);
+        const isPasswordValid = await bcrypt.compare(
+            password,
+            foundUser.password
+        );
 
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: "Invalid credentials",
             });
         }
 
         // Update last login time
-        await db.update(usersTable)
+        await db
+            .update(usersTable)
             .set({
                 lastLogin: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             })
             .where(eq(usersTable.id, foundUser.id));
 
@@ -66,7 +74,7 @@ export const login = async (req, res) => {
                 userId: foundUser.id,
                 username: foundUser.username,
                 email: foundUser.email,
-                role: foundUser.role
+                role: foundUser.role,
             },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
@@ -77,20 +85,19 @@ export const login = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Login successful',
+            message: "Login successful",
             data: {
                 user: userWithoutPassword,
                 token,
-                expiresIn: JWT_EXPIRES_IN
-            }
+                expiresIn: JWT_EXPIRES_IN,
+            },
         });
-
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error("Error during login:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -103,15 +110,14 @@ export const logout = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Logout successful'
+            message: "Logout successful",
         });
-
     } catch (error) {
-        console.error('Error during logout:', error);
+        console.error("Error during logout:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -121,13 +127,15 @@ export const getProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
 
-        const user = await db.select().from(usersTable)
+        const user = await db
+            .select()
+            .from(usersTable)
             .where(eq(usersTable.id, userId));
 
         if (user.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: "User not found",
             });
         }
 
@@ -136,15 +144,172 @@ export const getProfile = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            data: userWithoutPassword
+            data: userWithoutPassword,
         });
-
     } catch (error) {
-        console.error('Error getting user profile:', error);
+        console.error("Error getting user profile:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+};
+
+// Update profile details
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { username, email } = req.body;
+
+        if (!username || !email) {
+            return res.status(400).json({
+                success: false,
+                message: "Username and email are required",
+            });
+        }
+
+        const normalizedUsername = username.trim().toLowerCase();
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const existingUser = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, userId));
+
+        if (existingUser.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const usernameConflict = await db
+            .select()
+            .from(usersTable)
+            .where(
+                and(
+                    eq(usersTable.username, normalizedUsername),
+                    ne(usersTable.id, userId)
+                )
+            );
+
+        if (usernameConflict.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Username is already taken",
+            });
+        }
+
+        const emailConflict = await db
+            .select()
+            .from(usersTable)
+            .where(
+                and(
+                    eq(usersTable.email, normalizedEmail),
+                    ne(usersTable.id, userId)
+                )
+            );
+
+        if (emailConflict.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is already in use",
+            });
+        }
+
+        const updatedUser = await db
+            .update(usersTable)
+            .set({
+                username: normalizedUsername,
+                email: normalizedEmail,
+                updatedAt: new Date(),
+            })
+            .where(eq(usersTable.id, userId))
+            .returning();
+
+        const { password, ...userWithoutPassword } = updatedUser[0];
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            data: userWithoutPassword,
+        });
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
+        });
+    }
+};
+
+// Change password
+export const changePassword = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Current and new password are required",
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be at least 6 characters",
+            });
+        }
+
+        const user = await db
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, userId));
+
+        if (user.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const foundUser = user[0];
+        const isCurrentPasswordValid = await bcrypt.compare(
+            currentPassword,
+            foundUser.password
+        );
+
+        if (!isCurrentPasswordValid) {
+            return res.status(400).json({
+                success: false,
+                message: "Current password is incorrect",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await db
+            .update(usersTable)
+            .set({
+                password: hashedPassword,
+                updatedAt: new Date(),
+            })
+            .where(eq(usersTable.id, userId));
+
+        res.status(200).json({
+            success: true,
+            message: "Password updated successfully",
+        });
+    } catch (error) {
+        console.error("Error changing password:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };

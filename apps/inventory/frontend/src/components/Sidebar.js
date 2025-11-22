@@ -23,6 +23,7 @@ const navigation = [
     { name: "Inventory", href: "/dashboard/inventory", icon: CubeIcon },
     { name: "Orders", href: "/dashboard/orders", icon: ShoppingCartIcon },
     { name: "Reports", href: "/dashboard/reports", icon: ChartBarIcon },
+    { name: "Profile", href: "/dashboard/profile", icon: UserIcon },
 ];
 
 const navClasses = (isActive) =>
