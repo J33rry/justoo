@@ -2,8 +2,8 @@
 const nextConfig = {
     // Set workspace root to silence monorepo warning
     turbo: {
-        root: '../../..'
-    }
+        root: "../../..",
+    },
 };
 
 export default nextConfig;

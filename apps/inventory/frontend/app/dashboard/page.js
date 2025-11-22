@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { inventoryAPI } from "@/lib/api";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 import {
     CubeIcon,
     ExclamationTriangleIcon,
@@ -47,6 +47,17 @@ export default function Dashboard() {
             </DashboardLayout>
         );
     }
+
+    const inventoryValue = Number(
+        stats?.totalValue ?? stats?.totalInventoryValue ?? 0
+    );
+    const activeItems = stats?.activeItems ?? stats?.totalItems ?? 0;
+    const inactiveItems =
+        stats?.inactiveItems ??
+        Math.max((stats?.totalItems ?? 0) - activeItems, 0);
+    const lastUpdatedLabel = stats?.generatedAt
+        ? formatDateTime(stats.generatedAt)
+        : formatDateTime(new Date());
 
     const statCards = [
         {
@@ -129,10 +140,10 @@ export default function Dashboard() {
                                 Inventory value
                             </p>
                             <p className="mt-2 text-3xl font-semibold text-white">
-                                {formatCurrency(stats?.totalValue || 0)}
+                                {formatCurrency(inventoryValue)}
                             </p>
                             <p className="text-xs text-emerald-300">
-                                Active items: {stats?.activeItems || 0}
+                                Active items: {activeItems}
                             </p>
                         </div>
                     </div>
@@ -211,25 +222,25 @@ export default function Dashboard() {
                             <div className="flex justify-between text-sm text-slate-300">
                                 <span>Total value</span>
                                 <span className="font-semibold text-white">
-                                    {formatCurrency(stats?.totalValue || 0)}
+                                    {formatCurrency(inventoryValue)}
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm text-slate-300">
                                 <span>Active items</span>
                                 <span className="font-semibold text-white">
-                                    {stats?.activeItems || 0}
+                                    {activeItems}
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm text-slate-300">
                                 <span>Inactive items</span>
                                 <span className="font-semibold text-white">
-                                    {stats?.inactiveItems || 0}
+                                    {inactiveItems}
                                 </span>
                             </div>
                             <div className="flex justify-between text-sm text-slate-300">
                                 <span>Last updated</span>
                                 <span className="font-semibold text-white">
-                                    {new Date().toLocaleDateString()}
+                                    {lastUpdatedLabel}
                                 </span>
                             </div>
                         </div>
