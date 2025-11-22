@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
-import { inventoryAPI, orderAPI } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { useState, useEffect, useMemo } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { inventoryAPI, orderAPI } from "@/lib/api";
+import { formatCurrency, formatDateTime, ORDER_STATUS } from "@/lib/utils";
 import {
     ChartBarIcon,
-    DocumentChartBarIcon,
     ArrowTrendingUpIcon,
     ArrowTrendingDownIcon,
-} from '@heroicons/react/24/outline';
-import toast from 'react-hot-toast';
+    CloudArrowDownIcon,
+} from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
+
+const labelClasses =
+    "text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-400";
+const cardClasses =
+    "rounded-3xl border border-white/5 bg-white/5 shadow-card shadow-black/30 backdrop-blur-2xl";
 
 export default function ReportsPage() {
     const [dashboardStats, setDashboardStats] = useState(null);
@@ -26,189 +32,346 @@ export default function ReportsPage() {
             setLoading(true);
             const [statsResponse, ordersResponse] = await Promise.all([
                 inventoryAPI.getDashboardStats(),
-                orderAPI.getAllOrders({ limit: 10 })
+                orderAPI.getAllOrders({ limit: 10 }),
             ]);
-            console.log(ordersResponse, statsResponse);
             setDashboardStats(statsResponse.data.data);
             setRecentOrders(ordersResponse.data.data);
         } catch (error) {
-            toast.error('Failed to fetch report data');
-            console.error('Report data error:', error);
+            toast.error("Failed to fetch report data");
+            console.error("Report data error:", error);
         } finally {
             setLoading(false);
         }
     };
 
+    const recentOrderFigures = useMemo(() => {
+        const totalAmount = recentOrders.reduce(
+            (sum, order) => sum + Number(order.totalAmount || 0),
+            0
+        );
+        const itemCount = recentOrders.reduce(
+            (sum, order) => sum + Number(order.itemCount || 0),
+            0
+        );
+        return {
+            totalAmount,
+            itemCount,
+            avgAmount: recentOrders.length
+                ? totalAmount / recentOrders.length
+                : 0,
+        };
+    }, [recentOrders]);
+
+    const highlightStats = useMemo(
+        () => [
+            {
+                label: "Inventory Value",
+                value: formatCurrency(dashboardStats?.totalInventoryValue || 0),
+                detail: `${dashboardStats?.totalItems || 0} tracked SKUs`,
+            },
+            {
+                label: "Low Stock Alerts",
+                value: dashboardStats?.lowStockItems || 0,
+                detail: `${dashboardStats?.outOfStockItems || 0} critical`,
+            },
+            {
+                label: "Order Velocity",
+                value: `${recentOrders.length} orders`,
+                detail: "Last 10 records",
+            },
+            {
+                label: "Avg Order Value",
+                value: formatCurrency(recentOrderFigures.avgAmount),
+                detail: `Across ${recentOrders.length || 0} orders`,
+            },
+        ],
+        [dashboardStats, recentOrderFigures.avgAmount, recentOrders.length]
+    );
+
+    const reportCards = useMemo(
+        () => [
+            {
+                title: "Inventory Health",
+                icon: ChartBarIcon,
+                stats: [
+                    {
+                        label: "In Stock",
+                        value: dashboardStats?.inStockItems || 0,
+                    },
+                    {
+                        label: "Out of Stock",
+                        value: dashboardStats?.outOfStockItems || 0,
+                    },
+                    {
+                        label: "Active Items",
+                        value: dashboardStats?.activeItems || 0,
+                    },
+                    {
+                        label: "Inactive Items",
+                        value: dashboardStats?.inactiveItems || 0,
+                    },
+                ],
+            },
+            {
+                title: "Stock Alerts",
+                icon: ArrowTrendingDownIcon,
+                stats: [
+                    {
+                        label: "Low Stock",
+                        value: dashboardStats?.lowStockItems || 0,
+                    },
+                    {
+                        label: "Critical",
+                        value: dashboardStats?.outOfStockItems || 0,
+                    },
+                    {
+                        label: "Reorder Threshold",
+                        value: `${dashboardStats?.lowStockItems || 0} flagged`,
+                    },
+                    {
+                        label: "Buffer Coverage",
+                        value: `${dashboardStats?.minStockCoverage || 0} days`,
+                    },
+                ],
+            },
+            {
+                title: "Orders Pulse",
+                icon: ArrowTrendingUpIcon,
+                stats: [
+                    { label: "Recent Orders", value: recentOrders.length },
+                    {
+                        label: "Items Ordered",
+                        value: recentOrderFigures.itemCount,
+                    },
+                    {
+                        label: "Total Value",
+                        value: formatCurrency(recentOrderFigures.totalAmount),
+                    },
+                    {
+                        label: "Average Value",
+                        value: formatCurrency(recentOrderFigures.avgAmount),
+                    },
+                ],
+            },
+        ],
+        [dashboardStats, recentOrderFigures, recentOrders.length]
+    );
+
     if (loading) {
         return (
             <DashboardLayout>
-                <div className="flex justify-center items-center py-12">
-                    <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
-                </div>
+                <LoadingSpinner size="lg" />
             </DashboardLayout>
         );
     }
 
-    const reportCards = [
-        {
-            title: 'Inventory Overview',
-            stats: [
-                { label: 'Total Items', value: dashboardStats?.totalItems || 0 },
-                { label: 'Total Value', value: formatCurrency(dashboardStats?.totalInventoryValue || 0) },
-                { label: 'In Stock', value: dashboardStats?.inStockItems || 0 },
-                { label: 'Out of Stock', value: dashboardStats?.outOfStockItems || 0 },
-            ],
-            icon: ChartBarIcon,
-            color: 'blue'
-        },
-        {
-            title: 'Stock Alerts',
-            stats: [
-                { label: 'Low Stock Items', value: dashboardStats?.lowStockItems || 0 },
-                { label: 'Critical Items', value: dashboardStats?.outOfStockItems || 0 },
-                { label: 'Active Items', value: dashboardStats?.activeItems || 0 },
-                { label: 'Inactive Items', value: dashboardStats?.inactiveItems || 0 },
-            ],
-            icon: ArrowTrendingDownIcon,
-            color: 'red'
-        },
-        {
-            title: 'Recent Activity',
-            stats: [
-                { label: 'Recent Orders', value: recentOrders.length },
-                { label: 'Total Order Value', value: formatCurrency(recentOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0)) },
-                { label: 'Avg Order Value', value: formatCurrency(recentOrders.length > 0 ? recentOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0) / recentOrders.length : 0) },
-                { label: 'Items Ordered', value: recentOrders.reduce((sum, order) => sum + order.itemCount, 0) },
-            ],
-            icon: ArrowTrendingUpIcon,
-            color: 'green'
-        }
-    ];
-
     return (
         <DashboardLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-                    <p className="mt-2 text-sm text-gray-700">
-                        Overview of your inventory performance and key metrics.
-                    </p>
+            <div className="space-y-10">
+                <div
+                    className={`${cardClasses} relative overflow-hidden px-10 py-12`}
+                >
+                    <div className="pointer-events-none absolute -right-16 top-0 h-72 w-72 rounded-full bg-primary-500/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
+                    <div className="relative z-10 space-y-8">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.6em] text-slate-400">
+                                Reports
+                            </p>
+                            <h1 className="mt-4 text-4xl font-semibold text-white">
+                                Intelligence Hub
+                            </h1>
+                            <p className="mt-3 max-w-2xl text-sm text-slate-300">
+                                Observe real-time inventory momentum, understand
+                                fulfillment pressure, and export snapshots for
+                                stakeholders in seconds.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            {highlightStats.map((stat) => (
+                                <div
+                                    key={stat.label}
+                                    className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4"
+                                >
+                                    <p className={labelClasses}>{stat.label}</p>
+                                    <p className="mt-2 text-2xl font-semibold text-white">
+                                        {stat.value}
+                                    </p>
+                                    <p className="text-xs text-slate-400">
+                                        {stat.detail}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Report Cards */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {reportCards.map((card, index) => (
-                        <div key={index} className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <div className="flex items-center">
-                                    <div className={`p-3 rounded-lg bg-${card.color}-100`}>
-                                        <card.icon className={`h-6 w-6 text-${card.color}-600`} />
-                                    </div>
-                                    <h3 className="ml-3 text-lg font-medium text-gray-900">{card.title}</h3>
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {reportCards.map((card) => (
+                        <div
+                            key={card.title}
+                            className={`${cardClasses} px-6 py-6`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
+                                        Segment
+                                    </p>
+                                    <h3 className="mt-1 text-xl font-semibold text-white">
+                                        {card.title}
+                                    </h3>
                                 </div>
+                                <card.icon className="h-10 w-10 text-slate-200" />
                             </div>
-                            <div className="px-6 py-4">
-                                <dl className="grid grid-cols-1 gap-4">
-                                    {card.stats.map((stat, statIndex) => (
-                                        <div key={statIndex} className="flex justify-between">
-                                            <dt className="text-sm font-medium text-gray-500">{stat.label}</dt>
-                                            <dd className="text-sm font-semibold text-gray-900">{stat.value}</dd>
-                                        </div>
-                                    ))}
-                                </dl>
-                            </div>
+                            <dl className="mt-6 space-y-4">
+                                {card.stats.map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="flex items-center justify-between text-sm text-slate-200"
+                                    >
+                                        <dt className="text-slate-400">
+                                            {stat.label}
+                                        </dt>
+                                        <dd className="font-semibold text-white">
+                                            {stat.value}
+                                        </dd>
+                                    </div>
+                                ))}
+                            </dl>
                         </div>
                     ))}
                 </div>
 
-                {/* Recent Orders */}
-                <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <div className="flex items-center">
-                            <DocumentChartBarIcon className="h-6 w-6 text-gray-400" />
-                            <h3 className="ml-3 text-lg font-medium text-gray-900">Recent Orders</h3>
+                <div className={`${cardClasses} overflow-hidden px-0 py-0`}>
+                    <div className="flex flex-wrap items-center justify-between border-b border-white/5 px-8 py-6">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
+                                Recent Orders
+                            </p>
+                            <p className="mt-1 text-2xl font-semibold text-white">
+                                Audit Trail
+                            </p>
                         </div>
+                        <span className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-slate-300">
+                            Last snapshot • {new Date().toLocaleTimeString()}
+                        </span>
                     </div>
-                    <div className="px-6 py-4">
+                    <div className="overflow-x-auto">
                         {recentOrders.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">No recent orders found</p>
+                            <div className="px-8 py-16 text-center text-slate-400">
+                                No recent orders found.
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Order ID
+                            <table className="min-w-full divide-y divide-white/5 text-sm text-slate-200">
+                                <thead>
+                                    <tr className="text-left text-xs uppercase tracking-[0.4em] text-slate-500">
+                                        {[
+                                            "Order",
+                                            "Items",
+                                            "Total",
+                                            "Status",
+                                            "Date",
+                                        ].map((header) => (
+                                            <th
+                                                key={header}
+                                                className="px-8 py-5"
+                                            >
+                                                {header}
                                             </th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Items
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Total
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Date
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {recentOrders.map((order) => (
-                                            <tr key={order.id}>
-                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentOrders.map((order) => {
+                                        const status = ORDER_STATUS[
+                                            order.status
+                                        ] || {
+                                            text: order.status,
+                                            badgeClass:
+                                                "bg-white/10 text-white",
+                                        };
+                                        return (
+                                            <tr
+                                                key={order.id}
+                                                className="border-t border-white/5"
+                                            >
+                                                <td className="px-8 py-4 font-semibold text-white">
                                                     #{order.id}
                                                 </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                <td className="px-8 py-4 text-slate-200">
                                                     {order.itemCount}
                                                 </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatCurrency(order.totalAmount)}
+                                                <td className="px-8 py-4 text-white">
+                                                    {formatCurrency(
+                                                        order.totalAmount
+                                                    )}
                                                 </td>
-                                                <td className="px-3 py-2 whitespace-nowrap">
-                                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                            'bg-blue-100 text-blue-800'
-                                                        }`}>
-                                                        {order.status}
+                                                <td className="px-8 py-4">
+                                                    <span
+                                                        className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
+                                                    >
+                                                        <span className="h-2 w-2 rounded-full bg-white"></span>
+                                                        {status.text}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                                    {new Date(order.createdAt).toLocaleDateString()}
+                                                <td className="px-8 py-4 text-slate-300">
+                                                    {formatDateTime(
+                                                        order.createdAt
+                                                    )}
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         )}
                     </div>
                 </div>
 
-                {/* Export Actions */}
-                <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Export Reports</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <button
-                            onClick={() => toast.info('Inventory export feature coming soon')}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Export Inventory
-                        </button>
-                        <button
-                            onClick={() => toast.info('Orders export feature coming soon')}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Export Orders
-                        </button>
-                        <button
-                            onClick={() => toast.info('Report generation feature coming soon')}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            Generate Report
-                        </button>
+                <div className={`${cardClasses} px-8 py-8`}>
+                    <div className="flex flex-wrap items-center justify-between gap-6">
+                        <div>
+                            <p className={labelClasses}>Exports</p>
+                            <h3 className="mt-2 text-2xl font-semibold text-white">
+                                Shareable snapshots
+                            </h3>
+                            <p className="text-sm text-slate-300">
+                                One-click exports for finance, ops, or vendor
+                                syncs.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                            {[
+                                {
+                                    label: "Inventory",
+                                    action: () =>
+                                        toast.info(
+                                            "Inventory export coming soon"
+                                        ),
+                                },
+                                {
+                                    label: "Orders",
+                                    action: () =>
+                                        toast.info("Orders export coming soon"),
+                                },
+                                {
+                                    label: "Full Report",
+                                    action: () =>
+                                        toast.info(
+                                            "Report generation coming soon"
+                                        ),
+                                },
+                            ].map((button) => (
+                                <button
+                                    key={button.label}
+                                    onClick={button.action}
+                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-gradient-to-r from-sky-500/20 to-indigo-500/20 px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:border-sky-400"
+                                >
+                                    <CloudArrowDownIcon className="h-4 w-4" />
+                                    {`Export ${button.label}`}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

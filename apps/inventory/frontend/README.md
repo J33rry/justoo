@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Inventory Frontend
 
-## Getting Started
+Next.js dashboard for the inventory service. It talks directly to the inventory backend (`apps/inventory/backend`) over HTTP.
 
-First, run the development server:
+## Prerequisites
+
+-   [Node.js 20+](https://nodejs.org)
+-   [pnpm 9+](https://pnpm.io) (automatically used when you run commands inside the monorepo)
+-   Inventory backend running locally on port `3001` (or your preferred port)
+
+## Environment variables
+
+Create an `.env` file (or copy the provided one) and make sure the following variables are set:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_INVENTORY_API_URL=http://localhost:3001/api    # Base URL exposed to the browser
+NEXT_PUBLIC_ADMIN_BACKEND_API_URL=http://localhost:3002/api # Optional admin bridge
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **Important:** `NEXT_PUBLIC_INVENTORY_API_URL` must point to the `/api` root of the backend. The frontend then calls `/auth`, `/inventory`, and `/orders` underneath that path. If this value misses `/api` you will get 404 responses.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Install dependencies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm install
+```
 
-## Learn More
+## Local development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app runs on [http://localhost:3004](http://localhost:3004) by default.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Troubleshooting 404 errors
 
-## Deploy on Vercel
+-   Confirm the backend server log shows `🚀 Inventory API server is running on port 3001`.
+-   Hit [http://localhost:3001/health](http://localhost:3001/health) and verify a JSON response.
+-   Ensure `NEXT_PUBLIC_INVENTORY_API_URL` resolves to `http://localhost:3001/api`; trim extra slashes if needed.
+-   Restart the frontend dev server after changing env vars (`CTRL+C` then `pnpm dev`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If requests still fail, view the browser devtools network tab—the requested URL should match `http://localhost:3001/api/...`. Share the full failing URL and response payload when reporting issues.

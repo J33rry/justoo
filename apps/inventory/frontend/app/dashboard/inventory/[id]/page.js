@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { inventoryAPI } from '@/lib/api';
-import { formatCurrency, getStockStatus, UNITS } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import DashboardLayout from "@/components/DashboardLayout";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { inventoryAPI } from "@/lib/api";
+import { formatCurrency, getStockStatus, UNITS } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     PencilIcon,
     TrashIcon,
     ArrowLeftIcon,
-} from '@heroicons/react/24/outline';
-import toast from 'react-hot-toast';
-import Link from 'next/link';
+} from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function ItemDetailPage() {
     const [item, setItem] = useState(null);
@@ -22,7 +22,7 @@ export default function ItemDetailPage() {
     const params = useParams();
     const itemId = params.id;
     const { user } = useAuth();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === "admin";
 
     useEffect(() => {
         const loadItem = async () => {
@@ -31,10 +31,11 @@ export default function ItemDetailPage() {
                 const response = await inventoryAPI.getItemById(itemId);
                 setItem(response.data.data);
             } catch (error) {
-                console.error('Error loading item:', error);
-                const message = error.response?.data?.message || 'Failed to load item';
+                console.error("Error loading item:", error);
+                const message =
+                    error.response?.data?.message || "Failed to load item";
                 toast.error(message);
-                router.push('/dashboard/inventory');
+                router.push("/dashboard/inventory");
             } finally {
                 setIsLoading(false);
             }
@@ -46,17 +47,17 @@ export default function ItemDetailPage() {
     }, [itemId, router]);
 
     const handleDelete = async () => {
-        if (!window.confirm('Are you sure you want to delete this item?')) {
+        if (!window.confirm("Are you sure you want to delete this item?")) {
             return;
         }
 
         try {
             await inventoryAPI.deleteItem(itemId);
-            toast.success('Item deleted successfully');
-            router.push('/dashboard/inventory');
+            toast.success("Item deleted successfully");
+            router.push("/dashboard/inventory");
         } catch (error) {
-            toast.error('Failed to delete item');
-            console.error('Delete item error:', error);
+            toast.error("Failed to delete item");
+            console.error("Delete item error:", error);
         }
     };
 
@@ -74,13 +75,17 @@ export default function ItemDetailPage() {
         return (
             <DashboardLayout>
                 <div className="text-center py-12">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Item not found</h3>
-                    <p className="text-gray-500 mb-4">The item you're looking for could not be found.</p>
+                    <h3 className="text-lg font-medium text-white mb-2">
+                        Item not found
+                    </h3>
+                    <p className="text-slate-400 mb-4">
+                        The item you&apos;re looking for could not be found.
+                    </p>
                     <button
-                        onClick={() => router.push('/dashboard/inventory')}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                        onClick={() => router.push("/dashboard/inventory")}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-sky-500/30 bg-sky-500/20 px-5 py-3 text-sm font-semibold text-white"
                     >
-                        Back to Inventory
+                        Back to inventory
                     </button>
                 </div>
             </DashboardLayout>
@@ -91,162 +96,150 @@ export default function ItemDetailPage() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+            <section className="space-y-8">
+                <div className="flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-6 shadow-card shadow-black/40 backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+                    <div>
                         <button
-                            onClick={() => router.push('/dashboard/inventory')}
-                            className="inline-flex items-center text-gray-500 hover:text-gray-700"
+                            onClick={() => router.push("/dashboard/inventory")}
+                            className="inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-white"
                         >
-                            <ArrowLeftIcon className="h-5 w-5 mr-1" />
-                            Back to Inventory
+                            <ArrowLeftIcon className="h-4 w-4" /> Back to
+                            inventory
                         </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{item.name}</h1>
-                            <p className="mt-1 text-sm text-gray-500">
-                                Item ID: {item.id}
-                            </p>
-                        </div>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">
+                            {item.name}
+                        </h1>
+                        <p className="text-sm text-slate-400">#{item.id}</p>
                     </div>
                     {isAdmin && (
-                        <div className="flex space-x-3">
+                        <div className="flex gap-3">
                             <Link
                                 href={`/dashboard/inventory/edit/${item.id}`}
-                                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
                             >
-                                <PencilIcon className="h-4 w-4 mr-2" />
+                                <PencilIcon className="mr-2 inline h-4 w-4" />{" "}
                                 Edit
                             </Link>
                             <button
                                 onClick={handleDelete}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/20"
                             >
-                                <TrashIcon className="h-4 w-4 mr-2" />
+                                <TrashIcon className="mr-2 inline h-4 w-4" />{" "}
                                 Delete
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* Item Details */}
-                <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden">
-                    <div className="px-6 py-6">
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            {/* Basic Information */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
-                                    Basic Information
-                                </h3>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Name</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{item.name}</dd>
-                                </div>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Category</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{item.category || 'Uncategorized'}</dd>
-                                </div>
-
-                                {item.description && (
-                                    <div>
-                                        <dt className="text-sm font-medium text-gray-500">Description</dt>
-                                        <dd className="mt-1 text-sm text-gray-900">{item.description}</dd>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Status</dt>
-                                    <dd className="mt-1">
-                                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.isActive
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {item.isActive ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </dd>
-                                </div>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-3xl border border-white/5 bg-white/5 p-6 shadow-card shadow-black/30 backdrop-blur-xl">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                            Basics
+                        </p>
+                        <div className="mt-4 space-y-4 text-sm text-slate-200">
+                            <div>
+                                <p className="text-slate-400">Category</p>
+                                <p className="text-white">
+                                    {item.category || "Uncategorized"}
+                                </p>
                             </div>
-
-                            {/* Pricing & Stock */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
-                                    Pricing & Stock
-                                </h3>
-
+                            {item.description && (
                                 <div>
-                                    <dt className="text-sm font-medium text-gray-500">Price</dt>
-                                    <dd className="mt-1 text-lg font-semibold text-gray-900">
-                                        {formatCurrency(item.price)}
-                                        {item.discount > 0 && (
-                                            <span className="ml-2 text-sm text-green-600">
-                                                ({item.discount}% discount)
-                                            </span>
-                                        )}
-                                    </dd>
+                                    <p className="text-slate-400">
+                                        Description
+                                    </p>
+                                    <p className="text-white">
+                                        {item.description}
+                                    </p>
                                 </div>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Current Stock</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        <div className="flex items-center space-x-2">
-                                            <span className="font-medium">
-                                                {item.quantity} {UNITS[item.unit] || item.unit}
-                                            </span>
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-${stockStatus.color}-100 text-${stockStatus.color}-800`}>
-                                                {stockStatus.text}
-                                            </span>
-                                        </div>
-                                    </dd>
-                                </div>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Minimum Stock Level</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        {item.minStockLevel} {UNITS[item.unit] || item.unit}
-                                    </dd>
-                                </div>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Unit</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        {UNITS[item.unit] || item.unit}
-                                    </dd>
-                                </div>
-
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Total Value</dt>
-                                    <dd className="mt-1 text-lg font-semibold text-gray-900">
-                                        {formatCurrency(item.price * item.quantity)}
-                                    </dd>
-                                </div>
+                            )}
+                            <div>
+                                <p className="text-slate-400">Status</p>
+                                <span
+                                    className={`mt-1 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                        item.isActive
+                                            ? "bg-emerald-500/15 text-emerald-100 ring-1 ring-emerald-400/30"
+                                            : "bg-rose-500/15 text-rose-100 ring-1 ring-rose-400/30"
+                                    }`}
+                                >
+                                    {item.isActive ? "Active" : "Inactive"}
+                                </span>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Timestamps */}
-                        <div className="mt-8 pt-6 border-t border-gray-200">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">
-                                Record Information
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Created</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        {new Date(item.createdAt).toLocaleString()}
-                                    </dd>
+                    <div className="rounded-3xl border border-white/5 bg-white/5 p-6 shadow-card shadow-black/30 backdrop-blur-xl">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                            Pricing & Stock
+                        </p>
+                        <div className="mt-4 space-y-4 text-sm text-slate-200">
+                            <div>
+                                <p className="text-slate-400">Unit price</p>
+                                <p className="text-2xl font-semibold text-white">
+                                    {formatCurrency(item.price)}
+                                    {item.discount > 0 && (
+                                        <span className="ml-2 text-sm text-emerald-300">
+                                            ({item.discount}% discount)
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-slate-400">Current stock</p>
+                                <div className="mt-1 flex items-center gap-3 text-white">
+                                    <span className="text-xl font-semibold">
+                                        {item.quantity}{" "}
+                                        {UNITS[item.unit] || item.unit}
+                                    </span>
+                                    <span
+                                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${stockStatus.badgeClass}`}
+                                    >
+                                        <span
+                                            className={`h-2 w-2 rounded-full ${stockStatus.dotClass}`}
+                                        ></span>
+                                        {stockStatus.text}
+                                    </span>
                                 </div>
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        {new Date(item.updatedAt).toLocaleString()}
-                                    </dd>
-                                </div>
+                            </div>
+                            <div>
+                                <p className="text-slate-400">
+                                    Minimum stock level
+                                </p>
+                                <p className="text-white">
+                                    {item.minStockLevel}{" "}
+                                    {UNITS[item.unit] || item.unit}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-slate-400">Total value</p>
+                                <p className="text-xl font-semibold text-white">
+                                    {formatCurrency(item.price * item.quantity)}
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div className="rounded-3xl border border-white/5 bg-white/5 p-6 shadow-card shadow-black/30 backdrop-blur-xl">
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                        Record information
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-4 text-sm text-slate-200 sm:grid-cols-2">
+                        <div>
+                            <p className="text-slate-400">Created</p>
+                            <p className="text-white">
+                                {new Date(item.createdAt).toLocaleString()}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-400">Last updated</p>
+                            <p className="text-white">
+                                {new Date(item.updatedAt).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </DashboardLayout>
     );
 }

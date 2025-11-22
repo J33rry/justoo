@@ -1,12 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
-import { inventoryAPI } from '@/lib/api';
-import { UNITS } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import DashboardLayout from "@/components/DashboardLayout";
+import { inventoryAPI } from "@/lib/api";
+import { UNITS } from "@/lib/utils";
+import toast from "react-hot-toast";
+
+const labelClasses =
+    "text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-400";
+const inputClasses =
+    "block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none";
+const cardClasses =
+    "rounded-3xl border border-white/5 bg-white/5 shadow-card shadow-black/30 backdrop-blur-2xl";
 
 export default function AddItemPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,42 +26,38 @@ export default function AddItemPage() {
         register,
         handleSubmit,
         formState: { errors },
-        setValue,
-        watch
     } = useForm({
         defaultValues: {
-            name: '',
-            description: '',
-            price: '',
-            quantity: '',
+            name: "",
+            description: "",
+            price: "",
+            quantity: "",
             minStockLevel: 10,
             discount: 0,
-            unit: 'pieces',
-            category: '',
-            isActive: 1
-        }
+            unit: "pieces",
+            category: "",
+            isActive: 1,
+        },
     });
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                toast.error('Please select a valid image file');
-                return;
-            }
+    const handleImageChange = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-            // Validate file size (5MB limit)
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error('Image size must be less than 5MB');
-                return;
-            }
-
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onload = (e) => setImagePreview(e.target.result);
-            reader.readAsDataURL(file);
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select a valid image file");
+            return;
         }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Image size must be less than 5MB");
+            return;
+        }
+
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onload = (e) => setImagePreview(e.target?.result);
+        reader.readAsDataURL(file);
     };
 
     const removeImage = () => {
@@ -64,26 +68,24 @@ export default function AddItemPage() {
     const onSubmit = async (data) => {
         setIsSubmitting(true);
         try {
-            // Create FormData for file upload
             const formData = new FormData();
 
-            // Add all form fields
-            Object.keys(data).forEach(key => {
-                if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
-                    formData.append(key, data[key]);
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== "") {
+                    formData.append(key, value);
                 }
             });
 
-            // Add image if selected
             if (selectedImage) {
-                formData.append('image', selectedImage);
+                formData.append("image", selectedImage);
             }
 
             await inventoryAPI.addItem(formData);
-            toast.success('Item added successfully!');
-            router.push('/dashboard/inventory');
+            toast.success("Item added successfully!");
+            router.push("/dashboard/inventory");
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to add item';
+            const message =
+                error.response?.data?.message || "Failed to add item";
             toast.error(message);
         } finally {
             setIsSubmitting(false);
@@ -92,253 +94,292 @@ export default function AddItemPage() {
 
     return (
         <DashboardLayout>
-            <div className="max-w-4xl mx-auto space-y-8">
-                {/* Header */}
-                <div className="pb-6 border-b border-gray-200">
-                    <h1 className="text-3xl font-bold text-gray-900">Add New Item</h1>
-                    <p className="mt-3 text-base text-gray-600">
-                        Add a new item to your inventory system with all the necessary details.
+            <div className="space-y-10">
+                <div className={`${cardClasses} px-8 py-10`}>
+                    <p className="text-xs uppercase tracking-[0.6em] text-slate-400">
+                        Inventory
+                    </p>
+                    <h1 className="mt-4 text-4xl font-semibold text-white">
+                        Add New Item
+                    </h1>
+                    <p className="mt-3 text-sm text-slate-300 max-w-2xl">
+                        Capture every detail from pricing to reorder thresholds
+                        so your team never loses track of critical stock
+                        information.
                     </p>
                 </div>
 
-                {/* Form */}
-                <div className="bg-white shadow-lg ring-1 ring-gray-900/10 rounded-xl overflow-hidden">
-                    <form onSubmit={handleSubmit(onSubmit)} className="px-8 py-8 space-y-8">
-                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-                            {/* Item Name */}
-                            <div className="lg:col-span-2">
-                                <label htmlFor="name" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Item Name *
-                                </label>
+                <div className={`${cardClasses} px-8 py-10`}>
+                    <form
+                        onSubmit={handleSubmit(onSubmit)}
+                        className="space-y-8"
+                    >
+                        <div className="grid gap-8 lg:grid-cols-2">
+                            <div className="lg:col-span-2 space-y-3">
+                                <p className={labelClasses}>Item Name *</p>
                                 <input
                                     type="text"
-                                    {...register('name', {
-                                        required: 'Item name is required',
-                                        minLength: { value: 2, message: 'Name must be at least 2 characters' }
+                                    {...register("name", {
+                                        required: "Item name is required",
+                                        minLength: {
+                                            value: 2,
+                                            message:
+                                                "Name must be at least 2 characters",
+                                        },
                                     })}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
-                                    placeholder="Enter item name"
+                                    className={inputClasses}
+                                    placeholder="E.g. Organic Cold Brew"
                                 />
                                 {errors.name && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.name.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.name.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Category */}
-                            <div>
-                                <label htmlFor="category" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Category
-                                </label>
+                            <div className="space-y-3">
+                                <p className={labelClasses}>Category</p>
                                 <input
                                     type="text"
-                                    {...register('category')}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
-                                    placeholder="Enter category"
+                                    {...register("category")}
+                                    className={inputClasses}
+                                    placeholder="Beverages"
                                 />
                             </div>
 
-                            {/* Unit */}
-                            <div>
-                                <label htmlFor="unit" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Unit *
-                                </label>
+                            <div className="space-y-3">
+                                <p className={labelClasses}>Unit *</p>
                                 <select
-                                    {...register('unit', { required: 'Unit is required' })}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 px-4 py-3 text-sm"
+                                    {...register("unit", {
+                                        required: "Unit is required",
+                                    })}
+                                    className={`${inputClasses} pr-10`}
                                 >
-                                    {Object.entries(UNITS).map(([value, label]) => (
-                                        <option key={value} value={value}>
-                                            {label}
-                                        </option>
-                                    ))}
+                                    {Object.entries(UNITS).map(
+                                        ([value, label]) => (
+                                            <option
+                                                key={value}
+                                                value={value}
+                                                className="bg-slate-900"
+                                            >
+                                                {label}
+                                            </option>
+                                        )
+                                    )}
                                 </select>
                                 {errors.unit && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.unit.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.unit.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Price */}
-                            <div>
-                                <label htmlFor="price" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Price *
-                                </label>
+                            <div className="space-y-3">
+                                <p className={labelClasses}>Price *</p>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 text-sm">₹</span>
-                                    </div>
+                                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                        ₹
+                                    </span>
                                     <input
                                         type="number"
-                                        step="0.01"
                                         min="0"
-                                        {...register('price', {
-                                            required: 'Price is required',
-                                            min: { value: 0, message: 'Price must be positive' }
+                                        step="0.01"
+                                        {...register("price", {
+                                            required: "Price is required",
+                                            min: {
+                                                value: 0,
+                                                message:
+                                                    "Price must be positive",
+                                            },
                                         })}
-                                        className="block w-full pl-8 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
+                                        className={`${inputClasses} pl-9`}
                                         placeholder="0.00"
                                     />
                                 </div>
                                 {errors.price && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.price.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.price.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Discount */}
-                            <div>
-                                <label htmlFor="discount" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Discount (%)
-                                </label>
+                            <div className="space-y-3">
+                                <p className={labelClasses}>Discount (%)</p>
                                 <div className="relative">
                                     <input
                                         type="number"
-                                        step="0.01"
                                         min="0"
                                         max="100"
-                                        {...register('discount', {
-                                            min: { value: 0, message: 'Discount cannot be negative' },
-                                            max: { value: 100, message: 'Discount cannot exceed 100%' }
+                                        step="0.01"
+                                        {...register("discount", {
+                                            min: {
+                                                value: 0,
+                                                message:
+                                                    "Discount cannot be negative",
+                                            },
+                                            max: {
+                                                value: 100,
+                                                message:
+                                                    "Discount cannot exceed 100%",
+                                            },
                                         })}
-                                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
+                                        className={inputClasses}
                                         placeholder="0.00"
                                     />
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 text-sm">%</span>
-                                    </div>
+                                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                        %
+                                    </span>
                                 </div>
                                 {errors.discount && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.discount.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.discount.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Quantity */}
-                            <div>
-                                <label htmlFor="quantity" className="block text-sm font-semibold text-gray-800 mb-2">
+                            <div className="space-y-3">
+                                <p className={labelClasses}>
                                     Initial Quantity *
-                                </label>
+                                </p>
                                 <input
                                     type="number"
                                     min="0"
-                                    {...register('quantity', {
-                                        required: 'Quantity is required',
-                                        min: { value: 0, message: 'Quantity cannot be negative' }
+                                    {...register("quantity", {
+                                        required: "Quantity is required",
+                                        min: {
+                                            value: 0,
+                                            message:
+                                                "Quantity cannot be negative",
+                                        },
                                     })}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
+                                    className={inputClasses}
                                     placeholder="0"
                                 />
                                 {errors.quantity && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.quantity.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.quantity.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Min Stock Level */}
-                            <div>
-                                <label htmlFor="minStockLevel" className="block text-sm font-semibold text-gray-800 mb-2">
+                            <div className="space-y-3">
+                                <p className={labelClasses}>
                                     Minimum Stock Level *
-                                </label>
+                                </p>
                                 <input
                                     type="number"
                                     min="0"
-                                    {...register('minStockLevel', {
-                                        required: 'Minimum stock level is required',
-                                        min: { value: 0, message: 'Minimum stock level cannot be negative' }
+                                    {...register("minStockLevel", {
+                                        required:
+                                            "Minimum stock level is required",
+                                        min: {
+                                            value: 0,
+                                            message:
+                                                "Minimum stock level cannot be negative",
+                                        },
                                     })}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400 px-4 py-3 text-sm"
+                                    className={inputClasses}
                                     placeholder="10"
                                 />
                                 {errors.minStockLevel && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.minStockLevel.message}</p>
+                                    <p className="text-sm font-medium text-rose-300">
+                                        {errors.minStockLevel.message}
+                                    </p>
                                 )}
                             </div>
 
-                            {/* Status */}
-                            <div>
-                                <label htmlFor="isActive" className="block text-sm font-semibold text-gray-800 mb-2">
-                                    Status
-                                </label>
+                            <div className="space-y-3">
+                                <p className={labelClasses}>Status</p>
                                 <select
-                                    {...register('isActive')}
-                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 px-4 py-3 text-sm"
+                                    {...register("isActive")}
+                                    className={`${inputClasses} pr-10`}
                                 >
-                                    <option value="1">Active</option>
-                                    <option value="0">Inactive</option>
+                                    <option value="1" className="bg-slate-900">
+                                        Active
+                                    </option>
+                                    <option value="0" className="bg-slate-900">
+                                        Inactive
+                                    </option>
                                 </select>
                             </div>
                         </div>
 
-                        {/* Image Upload */}
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-800 mb-2">
-                                Item Image
-                            </label>
-                            <div className="space-y-4">
-                                {/* Image Preview */}
-                                {imagePreview && (
-                                    <div className="relative inline-block">
-                                        <img
+                        <div className="space-y-3">
+                            <p className={labelClasses}>Description</p>
+                            <textarea
+                                rows="4"
+                                {...register("description")}
+                                className={`${inputClasses} resize-none`}
+                                placeholder="Tasting notes, sourcing info, prep instructions, etc."
+                            ></textarea>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className={labelClasses}>Item Image</p>
+                            <div className="flex flex-wrap items-center gap-6">
+                                {imagePreview ? (
+                                    <div className="relative">
+                                        <Image
                                             src={imagePreview}
                                             alt="Item preview"
-                                            className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                                            width={112}
+                                            height={112}
+                                            unoptimized
+                                            className="h-28 w-28 rounded-2xl border border-white/10 object-cover"
                                         />
                                         <button
                                             type="button"
                                             onClick={removeImage}
-                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                                            className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/40"
                                         >
                                             ×
                                         </button>
                                     </div>
+                                ) : (
+                                    <div className="h-28 w-28 rounded-2xl border border-dashed border-white/15 bg-white/5 backdrop-blur-xl" />
                                 )}
 
-                                {/* Upload Area */}
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                                <label
+                                    htmlFor="image-upload"
+                                    className="flex cursor-pointer flex-col rounded-2xl border border-white/10 bg-white/5 px-6 py-5 text-left text-sm text-slate-200 shadow-glow transition hover:border-sky-400"
+                                >
                                     <input
                                         type="file"
+                                        id="image-upload"
                                         accept="image/*"
                                         onChange={handleImageChange}
                                         className="hidden"
-                                        id="image-upload"
                                     />
-                                    <label
-                                        htmlFor="image-upload"
-                                        className="cursor-pointer flex flex-col items-center"
-                                    >
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-sm text-gray-600 mb-1">
-                                            {selectedImage ? selectedImage.name : 'Click to upload image'}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                            PNG, JPG, GIF up to 5MB
-                                        </p>
-                                    </label>
-                                </div>
+                                    <span className="font-semibold">
+                                        Upload Image
+                                    </span>
+                                    <span className="mt-1 text-xs text-slate-400">
+                                        PNG, JPG, or GIF up to 5MB
+                                    </span>
+                                </label>
                             </div>
                         </div>
 
-                        {/* Form Actions */}
-                        <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                        <div className="flex flex-wrap justify-end gap-4 border-t border-white/5 pt-8">
                             <button
                                 type="button"
                                 onClick={() => router.back()}
-                                className="inline-flex justify-center items-center rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                                className="inline-flex items-center rounded-2xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-white/30"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="inline-flex justify-center items-center rounded-lg border border-transparent bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 px-7 py-3 text-sm font-semibold text-white shadow-glow transition hover:shadow-xl disabled:opacity-60"
                             >
                                 {isSubmitting ? (
-                                    <div className="flex items-center">
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                        Adding...
-                                    </div>
+                                    <>
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                                        Saving...
+                                    </>
                                 ) : (
-                                    'Add Item'
+                                    "Add Item"
                                 )}
                             </button>
                         </div>
