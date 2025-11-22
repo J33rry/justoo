@@ -6,10 +6,10 @@ import { orderAPI } from "@/lib/api";
 import { formatCurrency, formatDateTime, ORDER_STATUS } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-    EyeIcon,
     MagnifyingGlassIcon,
     ArrowPathIcon,
     SparklesIcon,
+    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 
@@ -23,6 +23,7 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [selectedOrder, setSelectedOrder] = useState(null);
     const { user } = useAuth();
 
     const fetchOrders = useCallback(async () => {
@@ -82,6 +83,12 @@ export default function OrdersPage() {
         { value: "delivered", label: "Delivered" },
         { value: "cancelled", label: "Cancelled" },
     ];
+
+    const handleRowClick = (order) => {
+        setSelectedOrder(order);
+    };
+
+    const closeDetails = () => setSelectedOrder(null);
 
     return (
         <DashboardLayout>
@@ -256,7 +263,6 @@ export default function OrdersPage() {
                                             "Total",
                                             "Status",
                                             "Notes",
-                                            "",
                                         ].map((heading) => (
                                             <th
                                                 key={heading}
@@ -279,7 +285,10 @@ export default function OrdersPage() {
                                         return (
                                             <tr
                                                 key={order.id}
-                                                className="border-t border-white/5 transition hover:bg-white/5"
+                                                onClick={() =>
+                                                    handleRowClick(order)
+                                                }
+                                                className="cursor-pointer border-t border-white/5 transition hover:bg-white/5"
                                             >
                                                 <td className="px-8 py-4 font-semibold text-white">
                                                     #{order.id}
@@ -316,15 +325,6 @@ export default function OrdersPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-8 py-4 text-right">
-                                                    <button
-                                                        type="button"
-                                                        className="rounded-full border border-white/10 p-2 text-slate-200 transition hover:border-sky-400 hover:text-white"
-                                                        title="View details"
-                                                    >
-                                                        <EyeIcon className="h-4 w-4" />
-                                                    </button>
-                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -333,7 +333,151 @@ export default function OrdersPage() {
                         </div>
                     )}
                 </div>
+                <OrderDetailsModal
+                    order={selectedOrder}
+                    onClose={closeDetails}
+                />
             </div>
         </DashboardLayout>
+    );
+}
+
+function OrderDetailsModal({ order, onClose }) {
+    if (!order) return null;
+
+    const status = ORDER_STATUS[order.status] || {
+        text: order.status,
+        badgeClass: "bg-white/10 text-white",
+    };
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur"
+            onClick={onClose}
+        >
+            <div
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-slate-900/90 p-8 shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
+                            Order detail
+                        </p>
+                        <h2 className="mt-2 text-3xl font-semibold text-white">
+                            #{order.id}
+                        </h2>
+                        <p className="text-sm text-slate-400">
+                            Placed {formatDateTime(order.createdAt)}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full border border-white/10 p-2 text-slate-300 transition hover:border-white/40 hover:text-white"
+                        aria-label="Close order details"
+                    >
+                        <XMarkIcon className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="mt-8 grid gap-6 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <p className={labelClasses}>Summary</p>
+                        <div className="mt-4 space-y-3 text-sm text-slate-200">
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">Status</span>
+                                <span
+                                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
+                                >
+                                    <span className="h-2 w-2 rounded-full bg-white"></span>
+                                    {status.text}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">Items</span>
+                                <span className="font-semibold text-white">
+                                    {order.itemCount} items
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">
+                                    Total amount
+                                </span>
+                                <span className="text-lg font-semibold text-white">
+                                    {formatCurrency(order.totalAmount)}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">Updated</span>
+                                <span>
+                                    {order.updatedAt
+                                        ? formatDateTime(order.updatedAt)
+                                        : "—"}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <p className={labelClasses}>Notes</p>
+                        <p className="mt-4 text-sm text-slate-200">
+                            {order.notes || "No notes shared."}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-white/10">
+                    <div className="border-b border-white/10 px-5 py-4">
+                        <p className={labelClasses}>Line items</p>
+                    </div>
+                    <div className="divide-y divide-white/10">
+                        {order.items && order.items.length > 0 ? (
+                            order.items.map((item, index) => (
+                                <div
+                                    key={`${item.id || item.name}-${index}`}
+                                    className="grid grid-cols-1 gap-4 px-5 py-4 text-sm text-slate-200 md:grid-cols-4"
+                                >
+                                    <div className="font-semibold text-white">
+                                        {item.name ||
+                                            item.itemName ||
+                                            `Item ${index + 1}`}
+                                    </div>
+                                    <div>
+                                        Qty: {item.quantity || item.qty || 0}
+                                    </div>
+                                    <div>
+                                        {item.unit || item.unitLabel || ""}
+                                    </div>
+                                    <div className="text-right font-semibold text-white">
+                                        {item.total
+                                            ? formatCurrency(item.total)
+                                            : item.price
+                                            ? formatCurrency(
+                                                  item.price *
+                                                      (item.quantity || 1)
+                                              )
+                                            : "—"}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-5 py-6 text-sm text-slate-400">
+                                No line items available for this order.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/40"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }

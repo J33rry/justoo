@@ -22,6 +22,7 @@ export default function ReportsPage() {
     const [dashboardStats, setDashboardStats] = useState(null);
     const [recentOrders, setRecentOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(null);
 
     useEffect(() => {
         fetchReportData();
@@ -156,6 +157,155 @@ export default function ReportsPage() {
         ],
         [dashboardStats, recentOrderFigures, recentOrders.length]
     );
+
+    const downloadFile = (filename, content, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    };
+
+    const toCsv = (headers, rows) => {
+        const escapeValue = (value) => {
+            if (value === null || value === undefined) return "";
+            return String(value).replace(/"/g, '""');
+        };
+        const headerLine = headers.map((header) => `"${header}"`).join(",");
+        const lines = rows.map((row) =>
+            row.map((value) => `"${escapeValue(value)}"`).join(",")
+        );
+        return [headerLine, ...lines].join("\n");
+    };
+
+    const exportInventory = async () => {
+        try {
+            setExporting("inventory");
+            const response = await inventoryAPI.getAllItems({
+                limit: 1000,
+                includeInactive: true,
+                sortBy: "name",
+                sortOrder: "asc",
+            });
+            const items = response.data?.data || [];
+
+            if (items.length === 0) {
+                toast("No inventory records to export", { icon: "ℹ️" });
+                return;
+            }
+
+            const rows = items.map((item) => [
+                item.id,
+                item.name,
+                item.category || "Uncategorized",
+                item.unit,
+                Number(item.price || 0).toFixed(2),
+                item.quantity,
+                item.minStockLevel,
+                item.isActive ? "Active" : "Inactive",
+                formatDateTime(item.updatedAt),
+                item.description || "",
+            ]);
+
+            const csv = toCsv(
+                [
+                    "ID",
+                    "Name",
+                    "Category",
+                    "Unit",
+                    "Price",
+                    "Quantity",
+                    "Min Stock",
+                    "Status",
+                    "Last Updated",
+                    "Description",
+                ],
+                rows
+            );
+
+            downloadFile(
+                `inventory-export-${new Date().toISOString()}.csv`,
+                csv,
+                "text/csv"
+            );
+            toast.success("Inventory export ready");
+        } catch (error) {
+            console.error("Inventory export failed", error);
+            toast.error("Failed to export inventory");
+        } finally {
+            setExporting(null);
+        }
+    };
+
+    const exportOrders = async () => {
+        try {
+            setExporting("orders");
+            const response = await orderAPI.getAllOrders({ limit: 1000 });
+            const orders = response.data?.data || [];
+
+            if (orders.length === 0) {
+                toast("No orders to export", { icon: "ℹ️" });
+                return;
+            }
+
+            const rows = orders.map((order) => {
+                const status = ORDER_STATUS[order.status]?.text || order.status;
+                return [
+                    order.id,
+                    formatDateTime(order.createdAt),
+                    order.itemCount,
+                    Number(order.totalAmount || 0).toFixed(2),
+                    status,
+                    order.notes || "",
+                ];
+            });
+
+            const csv = toCsv(
+                ["Order ID", "Created", "Items", "Total", "Status", "Notes"],
+                rows
+            );
+
+            downloadFile(
+                `orders-export-${new Date().toISOString()}.csv`,
+                csv,
+                "text/csv"
+            );
+            toast.success("Orders export ready");
+        } catch (error) {
+            console.error("Orders export failed", error);
+            toast.error("Failed to export orders");
+        } finally {
+            setExporting(null);
+        }
+    };
+
+    const exportFullReport = () => {
+        try {
+            setExporting("full");
+            const payload = {
+                generatedAt: new Date().toISOString(),
+                dashboardStats,
+                highlightStats,
+                recentOrders,
+            };
+            const json = JSON.stringify(payload, null, 2);
+            downloadFile(
+                `inventory-report-${new Date().toISOString()}.json`,
+                json,
+                "application/json"
+            );
+            toast.success("Full report exported");
+        } catch (error) {
+            console.error("Full report export failed", error);
+            toast.error("Failed to export report");
+        } finally {
+            setExporting(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -344,31 +494,34 @@ export default function ReportsPage() {
                             {[
                                 {
                                     label: "Inventory",
-                                    action: () =>
-                                        toast.info(
-                                            "Inventory export coming soon"
-                                        ),
+                                    action: exportInventory,
+                                    key: "inventory",
                                 },
                                 {
                                     label: "Orders",
-                                    action: () =>
-                                        toast.info("Orders export coming soon"),
+                                    action: exportOrders,
+                                    key: "orders",
                                 },
                                 {
                                     label: "Full Report",
-                                    action: () =>
-                                        toast.info(
-                                            "Report generation coming soon"
-                                        ),
+                                    action: exportFullReport,
+                                    key: "full",
                                 },
                             ].map((button) => (
                                 <button
                                     key={button.label}
                                     onClick={button.action}
-                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-gradient-to-r from-sky-500/20 to-indigo-500/20 px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:border-sky-400"
+                                    disabled={exporting === button.key}
+                                    className={`inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-gradient-to-r from-sky-500/20 to-indigo-500/20 px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:border-sky-400 ${
+                                        exporting === button.key
+                                            ? "opacity-60 cursor-not-allowed"
+                                            : ""
+                                    }`}
                                 >
                                     <CloudArrowDownIcon className="h-4 w-4" />
-                                    {`Export ${button.label}`}
+                                    {exporting === button.key
+                                        ? "Preparing..."
+                                        : `Export ${button.label}`}
                                 </button>
                             ))}
                         </div>

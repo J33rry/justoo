@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import { inventoryAPI } from "@/lib/api";
 import { formatCurrency, getStockStatus, UNITS } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     PlusIcon,
-    PencilIcon,
     TrashIcon,
-    EyeIcon,
     MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
@@ -24,6 +23,7 @@ export default function InventoryPage() {
     const [sortOrder, setSortOrder] = useState("asc");
     const { user } = useAuth();
     const isAdmin = user?.role === "admin";
+    const router = useRouter();
 
     const fetchItems = useCallback(async () => {
         try {
@@ -31,7 +31,7 @@ export default function InventoryPage() {
             const params = {
                 sortBy,
                 sortOrder,
-                ...(filter !== "all" && { filter }),
+                ...(filter !== "all" && { stockStatus: filter }),
             };
 
             const response = await inventoryAPI.getAllItems(params);
@@ -63,11 +63,31 @@ export default function InventoryPage() {
         }
     };
 
-    const filteredItems = items.filter(
-        (item) =>
+    const filteredItems = items.filter((item) => {
+        const matchesSearch =
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.category?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+            item.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (filter === "all") return matchesSearch;
+
+        const quantity = Number(item.quantity) || 0;
+        const minStock = Number(item.minStockLevel) || 0;
+
+        let matchesStock = true;
+        if (filter === "in-stock") {
+            matchesStock = quantity > 0;
+        } else if (filter === "out-of-stock") {
+            matchesStock = quantity === 0;
+        } else if (filter === "low-stock") {
+            matchesStock = quantity > 0 && quantity <= minStock;
+        }
+
+        return matchesSearch && matchesStock;
+    });
+
+    const handleRowClick = (id) => {
+        router.push(`/dashboard/inventory/${id}`);
+    };
 
     return (
         <DashboardLayout>
@@ -232,7 +252,10 @@ export default function InventoryPage() {
                                         return (
                                             <tr
                                                 key={item.id}
-                                                className="hover:bg-white/5"
+                                                onClick={() =>
+                                                    handleRowClick(item.id)
+                                                }
+                                                className="cursor-pointer hover:bg-white/5"
                                             >
                                                 <td className="px-6 py-5 align-top">
                                                     <p className="font-semibold text-white">
@@ -281,37 +304,22 @@ export default function InventoryPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-5 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Link
-                                                            href={`/dashboard/inventory/${item.id}`}
-                                                            className="rounded-full border border-white/10 p-2 text-slate-200 transition hover:border-white/40"
-                                                            title="View"
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={(
+                                                                event
+                                                            ) => {
+                                                                event.stopPropagation();
+                                                                handleDelete(
+                                                                    item.id
+                                                                );
+                                                            }}
+                                                            className="rounded-full border border-white/10 p-2 text-rose-200 transition hover:border-rose-400/60 hover:text-white"
+                                                            title="Delete"
                                                         >
-                                                            <EyeIcon className="h-4 w-4" />
-                                                        </Link>
-                                                        {isAdmin && (
-                                                            <>
-                                                                <Link
-                                                                    href={`/dashboard/inventory/edit/${item.id}`}
-                                                                    className="rounded-full border border-white/10 p-2 text-indigo-200 transition hover:border-indigo-400/60 hover:text-white"
-                                                                    title="Edit"
-                                                                >
-                                                                    <PencilIcon className="h-4 w-4" />
-                                                                </Link>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleDelete(
-                                                                            item.id
-                                                                        )
-                                                                    }
-                                                                    className="rounded-full border border-white/10 p-2 text-rose-200 transition hover:border-rose-400/60 hover:text-white"
-                                                                    title="Delete"
-                                                                >
-                                                                    <TrashIcon className="h-4 w-4" />
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                            <TrashIcon className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

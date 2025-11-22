@@ -1,8 +1,13 @@
-import { db } from '../db/index.js';
-import { items as itemTable } from '@justoo/db';
-import { eq, sql, and } from 'drizzle-orm';
-import { uploadImage, deleteImage, processItemsImages, processItemImage } from '../config/cloudinary.js';
-import multer from 'multer';
+import { db } from "../db/index.js";
+import { items as itemTable } from "@justoo/db";
+import { eq, sql, and, asc, desc } from "drizzle-orm";
+import {
+    uploadImage,
+    deleteImage,
+    processItemsImages,
+    processItemImage,
+} from "../config/cloudinary.js";
+import multer from "multer";
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -12,16 +17,26 @@ export const upload = multer({
         fileSize: 5 * 1024 * 1024, // 5MB limit
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
+        if (file.mimetype.startsWith("image/")) {
             cb(null, true);
         } else {
-            cb(new Error('Only image files are allowed'), false);
+            cb(new Error("Only image files are allowed"), false);
         }
-    }
+    },
 });
 
 // Valid units enum
-export const VALID_UNITS = ['kg', 'grams', 'ml', 'litre', 'pieces', 'dozen', 'packet', 'bottle', 'can'];
+export const VALID_UNITS = [
+    "kg",
+    "grams",
+    "ml",
+    "litre",
+    "pieces",
+    "dozen",
+    "packet",
+    "bottle",
+    "can",
+];
 
 // Add new item to inventory
 export const addItem = async (req, res) => {
@@ -34,28 +49,30 @@ export const addItem = async (req, res) => {
             minStockLevel,
             discount,
             unit,
-            category
+            category,
         } = req.body;
 
         // Validation
         if (!name || !price || !unit) {
             return res.status(400).json({
                 success: false,
-                message: 'Name, price, and unit are required fields'
+                message: "Name, price, and unit are required fields",
             });
         }
 
         if (!VALID_UNITS.includes(unit)) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid unit. Valid units are: ${VALID_UNITS.join(', ')}`
+                message: `Invalid unit. Valid units are: ${VALID_UNITS.join(
+                    ", "
+                )}`,
             });
         }
 
         if (price < 0 || (quantity && quantity < 0)) {
             return res.status(400).json({
                 success: false,
-                message: 'Price and quantity cannot be negative'
+                message: "Price and quantity cannot be negative",
             });
         }
 
@@ -69,41 +86,43 @@ export const addItem = async (req, res) => {
                 imageUrl = uploadResult.url;
                 imagePublicId = uploadResult.publicId;
             } catch (uploadError) {
-                console.error('Image upload failed:', uploadError);
+                console.error("Image upload failed:", uploadError);
                 return res.status(500).json({
                     success: false,
-                    message: 'Failed to upload image',
-                    error: uploadError.message
+                    message: "Failed to upload image",
+                    error: uploadError.message,
                 });
             }
         }
 
-        const newItem = await db.insert(itemTable).values({
-            name: name.trim(),
-            description: description || null,
-            price: parseFloat(price).toFixed(2),
-            quantity: parseInt(quantity) || 0,
-            minStockLevel: parseInt(minStockLevel) || 10,
-            discount: discount ? parseFloat(discount).toFixed(2) : '0.00',
-            unit,
-            category: category || null,
-            image: imageUrl,
-            imagePublicId: imagePublicId,
-            updatedAt: new Date()
-        }).returning();
+        const newItem = await db
+            .insert(itemTable)
+            .values({
+                name: name.trim(),
+                description: description || null,
+                price: parseFloat(price).toFixed(2),
+                quantity: parseInt(quantity) || 0,
+                minStockLevel: parseInt(minStockLevel) || 10,
+                discount: discount ? parseFloat(discount).toFixed(2) : "0.00",
+                unit,
+                category: category || null,
+                image: imageUrl,
+                imagePublicId: imagePublicId,
+                updatedAt: new Date(),
+            })
+            .returning();
 
         res.status(201).json({
             success: true,
-            message: 'Item added successfully',
-            data: processItemImage(newItem[0])
+            message: "Item added successfully",
+            data: processItemImage(newItem[0]),
         });
-
     } catch (error) {
-        console.error('Error adding item:', error);
+        console.error("Error adding item:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -121,23 +140,26 @@ export const editItem = async (req, res) => {
             discount,
             unit,
             category,
-            isActive
+            isActive,
         } = req.body;
 
         if (!id) {
             return res.status(400).json({
                 success: false,
-                message: 'Item ID is required'
+                message: "Item ID is required",
             });
         }
 
         // Check if item exists
-        const existingItem = await db.select().from(itemTable).where(eq(itemTable.id, parseInt(id)));
+        const existingItem = await db
+            .select()
+            .from(itemTable)
+            .where(eq(itemTable.id, parseInt(id)));
 
         if (existingItem.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Item not found'
+                message: "Item not found",
             });
         }
 
@@ -145,14 +167,16 @@ export const editItem = async (req, res) => {
         if (unit && !VALID_UNITS.includes(unit)) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid unit. Valid units are: ${VALID_UNITS.join(', ')}`
+                message: `Invalid unit. Valid units are: ${VALID_UNITS.join(
+                    ", "
+                )}`,
             });
         }
 
         if ((price && price < 0) || (quantity && quantity < 0)) {
             return res.status(400).json({
                 success: false,
-                message: 'Price and quantity cannot be negative'
+                message: "Price and quantity cannot be negative",
             });
         }
 
@@ -172,11 +196,11 @@ export const editItem = async (req, res) => {
                 imageUrl = uploadResult.url;
                 imagePublicId = uploadResult.publicId;
             } catch (uploadError) {
-                console.error('Image upload failed:', uploadError);
+                console.error("Image upload failed:", uploadError);
                 return res.status(500).json({
                     success: false,
-                    message: 'Failed to upload image',
-                    error: uploadError.message
+                    message: "Failed to upload image",
+                    error: uploadError.message,
                 });
             }
         }
@@ -185,10 +209,13 @@ export const editItem = async (req, res) => {
         const updateData = { updatedAt: new Date() };
         if (name !== undefined) updateData.name = name.trim();
         if (description !== undefined) updateData.description = description;
-        if (price !== undefined) updateData.price = parseFloat(price).toFixed(2);
+        if (price !== undefined)
+            updateData.price = parseFloat(price).toFixed(2);
         if (quantity !== undefined) updateData.quantity = parseInt(quantity);
-        if (minStockLevel !== undefined) updateData.minStockLevel = parseInt(minStockLevel);
-        if (discount !== undefined) updateData.discount = parseFloat(discount).toFixed(2);
+        if (minStockLevel !== undefined)
+            updateData.minStockLevel = parseInt(minStockLevel);
+        if (discount !== undefined)
+            updateData.discount = parseFloat(discount).toFixed(2);
         if (unit !== undefined) updateData.unit = unit;
         if (category !== undefined) updateData.category = category;
         if (isActive !== undefined) updateData.isActive = isActive ? 1 : 0;
@@ -197,23 +224,23 @@ export const editItem = async (req, res) => {
         updateData.image = imageUrl;
         updateData.imagePublicId = imagePublicId;
 
-        const updatedItem = await db.update(itemTable)
+        const updatedItem = await db
+            .update(itemTable)
             .set(updateData)
             .where(eq(itemTable.id, parseInt(id)))
             .returning();
 
         res.status(200).json({
             success: true,
-            message: 'Item updated successfully',
-            data: processItemImage(updatedItem[0])
+            message: "Item updated successfully",
+            data: processItemImage(updatedItem[0]),
         });
-
     } catch (error) {
-        console.error('Error updating item:', error);
+        console.error("Error updating item:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -227,27 +254,33 @@ export const deleteItem = async (req, res) => {
         if (!id) {
             return res.status(400).json({
                 success: false,
-                message: 'Item ID is required'
+                message: "Item ID is required",
             });
         }
 
         // Check if item exists
-        const existingItem = await db.select().from(itemTable).where(eq(itemTable.id, parseInt(id)));
+        const existingItem = await db
+            .select()
+            .from(itemTable)
+            .where(eq(itemTable.id, parseInt(id)));
 
         if (existingItem.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Item not found'
+                message: "Item not found",
             });
         }
 
-        if (permanent === 'true') {
+        if (permanent === "true") {
             // Delete image from Cloudinary if exists
             if (existingItem[0].imagePublicId) {
                 try {
                     await deleteImage(existingItem[0].imagePublicId);
                 } catch (imageDeleteError) {
-                    console.error('Failed to delete image from Cloudinary:', imageDeleteError);
+                    console.error(
+                        "Failed to delete image from Cloudinary:",
+                        imageDeleteError
+                    );
                     // Continue with deletion even if image deletion fails
                 }
             }
@@ -257,31 +290,31 @@ export const deleteItem = async (req, res) => {
 
             res.status(200).json({
                 success: true,
-                message: 'Item permanently deleted'
+                message: "Item permanently deleted",
             });
         } else {
             // Soft delete
-            const updatedItem = await db.update(itemTable)
+            const updatedItem = await db
+                .update(itemTable)
                 .set({
                     isActive: 0,
-                    updatedAt: new Date()
+                    updatedAt: new Date(),
                 })
                 .where(eq(itemTable.id, parseInt(id)))
                 .returning();
 
             res.status(200).json({
                 success: true,
-                message: 'Item deactivated successfully',
-                data: processItemImage(updatedItem[0])
+                message: "Item deactivated successfully",
+                data: processItemImage(updatedItem[0]),
             });
         }
-
     } catch (error) {
-        console.error('Error deleting item:', error);
+        console.error("Error deleting item:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -299,25 +332,32 @@ export const listInStockItems = async (req, res) => {
 
         // Add category filter if provided
         if (category) {
-            whereConditions = and(whereConditions, eq(itemTable.category, category));
+            whereConditions = and(
+                whereConditions,
+                eq(itemTable.category, category)
+            );
         }
 
         // Add search filter if provided
         if (search) {
             whereConditions = and(
                 whereConditions,
-                sql`LOWER(${itemTable.name}) LIKE LOWER(${'%' + search + '%'})`
+                sql`LOWER(${itemTable.name}) LIKE LOWER(${"%" + search + "%"})`
             );
         }
 
-        const items = await db.select().from(itemTable)
+        const items = await db
+            .select()
+            .from(itemTable)
             .where(whereConditions)
             .limit(parseInt(limit))
             .offset(offset)
             .orderBy(itemTable.name);
 
         // Get total count for pagination
-        const totalCount = await db.select({ count: sql`count(*)` }).from(itemTable)
+        const totalCount = await db
+            .select({ count: sql`count(*)` })
+            .from(itemTable)
             .where(whereConditions);
 
         res.status(200).json({
@@ -327,16 +367,17 @@ export const listInStockItems = async (req, res) => {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 total: parseInt(totalCount[0].count),
-                totalPages: Math.ceil(parseInt(totalCount[0].count) / parseInt(limit))
-            }
+                totalPages: Math.ceil(
+                    parseInt(totalCount[0].count) / parseInt(limit)
+                ),
+            },
         });
-
     } catch (error) {
-        console.error('Error fetching in-stock items:', error);
+        console.error("Error fetching in-stock items:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -354,25 +395,32 @@ export const listOutOfStockItems = async (req, res) => {
 
         // Add category filter if provided
         if (category) {
-            whereConditions = and(whereConditions, eq(itemTable.category, category));
+            whereConditions = and(
+                whereConditions,
+                eq(itemTable.category, category)
+            );
         }
 
         // Add search filter if provided
         if (search) {
             whereConditions = and(
                 whereConditions,
-                sql`LOWER(${itemTable.name}) LIKE LOWER(${'%' + search + '%'})`
+                sql`LOWER(${itemTable.name}) LIKE LOWER(${"%" + search + "%"})`
             );
         }
 
-        const items = await db.select().from(itemTable)
+        const items = await db
+            .select()
+            .from(itemTable)
             .where(whereConditions)
             .limit(parseInt(limit))
             .offset(offset)
             .orderBy(itemTable.name);
 
         // Get total count for pagination
-        const totalCount = await db.select({ count: sql`count(*)` }).from(itemTable)
+        const totalCount = await db
+            .select({ count: sql`count(*)` })
+            .from(itemTable)
             .where(whereConditions);
 
         res.status(200).json({
@@ -382,16 +430,17 @@ export const listOutOfStockItems = async (req, res) => {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 total: parseInt(totalCount[0].count),
-                totalPages: Math.ceil(parseInt(totalCount[0].count) / parseInt(limit))
-            }
+                totalPages: Math.ceil(
+                    parseInt(totalCount[0].count) / parseInt(limit)
+                ),
+            },
         });
-
     } catch (error) {
-        console.error('Error fetching out-of-stock items:', error);
+        console.error("Error fetching out-of-stock items:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -410,25 +459,32 @@ export const listLowStockItems = async (req, res) => {
 
         // Add category filter if provided
         if (category) {
-            whereConditions = and(whereConditions, eq(itemTable.category, category));
+            whereConditions = and(
+                whereConditions,
+                eq(itemTable.category, category)
+            );
         }
 
         // Add search filter if provided
         if (search) {
             whereConditions = and(
                 whereConditions,
-                sql`LOWER(${itemTable.name}) LIKE LOWER(${'%' + search + '%'})`
+                sql`LOWER(${itemTable.name}) LIKE LOWER(${"%" + search + "%"})`
             );
         }
 
-        const items = await db.select().from(itemTable)
+        const items = await db
+            .select()
+            .from(itemTable)
             .where(whereConditions)
             .limit(parseInt(limit))
             .offset(offset)
             .orderBy(itemTable.quantity); // Order by quantity to show lowest first
 
         // Get total count for pagination
-        const totalCount = await db.select({ count: sql`count(*)` }).from(itemTable)
+        const totalCount = await db
+            .select({ count: sql`count(*)` })
+            .from(itemTable)
             .where(whereConditions);
 
         res.status(200).json({
@@ -438,16 +494,17 @@ export const listLowStockItems = async (req, res) => {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 total: parseInt(totalCount[0].count),
-                totalPages: Math.ceil(parseInt(totalCount[0].count) / parseInt(limit))
-            }
+                totalPages: Math.ceil(
+                    parseInt(totalCount[0].count) / parseInt(limit)
+                ),
+            },
         });
-
     } catch (error) {
-        console.error('Error fetching low stock items:', error);
+        console.error("Error fetching low stock items:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -461,28 +518,43 @@ export const getAllItems = async (req, res) => {
             limit = 20,
             search,
             stockStatus, // 'in-stock', 'out-of-stock', 'low-stock', 'all'
-            includeInactive = false
+            includeInactive = false,
+            sortBy = "name",
+            sortOrder = "asc",
         } = req.query;
 
         const offset = (parseInt(page) - 1) * parseInt(limit);
 
         let whereConditions = [];
 
+        const sortFieldMap = {
+            name: itemTable.name,
+            category: itemTable.category,
+            price: itemTable.price,
+            quantity: itemTable.quantity,
+            createdAt: itemTable.createdAt,
+            updatedAt: itemTable.updatedAt,
+        };
+
+        const sortColumn = sortFieldMap[sortBy] || itemTable.name;
+        const normalizedOrder =
+            String(sortOrder).toLowerCase() === "desc" ? "desc" : "asc";
+
         // Include inactive items only if requested
-        if (!includeInactive || includeInactive === 'false') {
+        if (!includeInactive || includeInactive === "false") {
             whereConditions.push(eq(itemTable.isActive, 1));
         }
 
         // Add stock status filter
         if (stockStatus) {
             switch (stockStatus) {
-                case 'in-stock':
+                case "in-stock":
                     whereConditions.push(sql`${itemTable.quantity} > 0`);
                     break;
-                case 'out-of-stock':
+                case "out-of-stock":
                     whereConditions.push(eq(itemTable.quantity, 0));
                     break;
-                case 'low-stock':
+                case "low-stock":
                     whereConditions.push(
                         sql`${itemTable.quantity} <= ${itemTable.minStockLevel}`,
                         sql`${itemTable.quantity} > 0`
@@ -504,16 +576,24 @@ export const getAllItems = async (req, res) => {
             );
         }
 
-        const finalWhereCondition = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+        const finalWhereCondition =
+            whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-        const items = await db.select().from(itemTable)
+        const orderByClause =
+            normalizedOrder === "desc" ? desc(sortColumn) : asc(sortColumn);
+
+        const items = await db
+            .select()
+            .from(itemTable)
             .where(finalWhereCondition)
             .limit(parseInt(limit))
             .offset(offset)
-            .orderBy(itemTable.name);
+            .orderBy(orderByClause);
 
         // Get total count for pagination
-        const totalCount = await db.select({ count: sql`count(*)` }).from(itemTable)
+        const totalCount = await db
+            .select({ count: sql`count(*)` })
+            .from(itemTable)
             .where(finalWhereCondition);
 
         res.status(200).json({
@@ -523,16 +603,17 @@ export const getAllItems = async (req, res) => {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 total: parseInt(totalCount[0].count),
-                totalPages: Math.ceil(parseInt(totalCount[0].count) / parseInt(limit))
-            }
+                totalPages: Math.ceil(
+                    parseInt(totalCount[0].count) / parseInt(limit)
+                ),
+            },
         });
-
     } catch (error) {
-        console.error('Error fetching items:', error);
+        console.error("Error fetching items:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };
@@ -545,30 +626,32 @@ export const getItemById = async (req, res) => {
         if (!id) {
             return res.status(400).json({
                 success: false,
-                message: 'Item ID is required'
+                message: "Item ID is required",
             });
         }
 
-        const item = await db.select().from(itemTable).where(eq(itemTable.id, parseInt(id)));
+        const item = await db
+            .select()
+            .from(itemTable)
+            .where(eq(itemTable.id, parseInt(id)));
 
         if (item.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Item not found'
+                message: "Item not found",
             });
         }
 
         res.status(200).json({
             success: true,
-            data: processItemImage(item[0])
+            data: processItemImage(item[0]),
         });
-
     } catch (error) {
-        console.error('Error fetching item:', error);
+        console.error("Error fetching item:", error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error',
-            error: error.message
+            message: "Internal server error",
+            error: error.message,
         });
     }
 };

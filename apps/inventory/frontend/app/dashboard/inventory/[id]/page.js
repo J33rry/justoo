@@ -118,7 +118,7 @@ export default function ItemDetailPage() {
                                 className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30"
                             >
                                 <PencilIcon className="mr-2 inline h-4 w-4" />{" "}
-                                Edit
+                                Update details
                             </Link>
                             <button
                                 onClick={handleDelete}
