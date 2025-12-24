@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -19,6 +19,78 @@ const MapAreaPicker = ({ points = [], onChangePoints, mapKey }) => {
     const mapContainerRef = useRef(null); // The DIV element
     const mapInstanceRef = useRef(null); // The Leaflet Map instance
     const polygonLayerRef = useRef(null); // To track the drawn polygon
+    const searchMarkerRef = useRef(null); // To track search result marker
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+
+    // Search for locations using Nominatim (OpenStreetMap's geocoding service)
+    const searchLocation = async (query) => {
+        if (!query.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                    query
+                )}&limit=5&countrycodes=in`
+            );
+            const data = await response.json();
+            setSearchResults(data);
+            setShowResults(true);
+        } catch (error) {
+            console.error("Search failed:", error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Handle search input with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchQuery.length >= 3) {
+                searchLocation(searchQuery);
+            } else {
+                setSearchResults([]);
+                setShowResults(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Handle selecting a search result
+    const selectLocation = (result) => {
+        if (!mapInstanceRef.current) return;
+
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+
+        // Pan and zoom to the selected location
+        mapInstanceRef.current.setView([lat, lng], 15);
+
+        // Remove existing search marker
+        if (searchMarkerRef.current) {
+            mapInstanceRef.current.removeLayer(searchMarkerRef.current);
+        }
+
+        // Add a marker at the searched location
+        searchMarkerRef.current = L.marker([lat, lng])
+            .addTo(mapInstanceRef.current)
+            .bindPopup(result.display_name)
+            .openPopup();
+
+        // Clear search
+        setSearchQuery("");
+        setSearchResults([]);
+        setShowResults(false);
+    };
 
     // 1. Initialize Map (Runs once per mount)
     useEffect(() => {
@@ -119,6 +191,75 @@ const MapAreaPicker = ({ points = [], onChangePoints, mapKey }) => {
 
     return (
         <div className="space-y-2">
+            {/* Search Bar */}
+            <div className="relative">
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search for a location..."
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        {isSearching && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <svg
+                                    className="animate-spin h-4 w-4 text-gray-400"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                </svg>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Search Results Dropdown */}
+                {showResults && searchResults.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {searchResults.map((result, index) => (
+                            <button
+                                key={index}
+                                type="button"
+                                onClick={() => selectLocation(result)}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                            >
+                                <div className="font-medium text-gray-900 truncate">
+                                    {result.display_name.split(",")[0]}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                    {result.display_name}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {showResults &&
+                    searchQuery.length >= 3 &&
+                    searchResults.length === 0 &&
+                    !isSearching && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm text-gray-500">
+                            No locations found
+                        </div>
+                    )}
+            </div>
+
             <div className="rounded-xl border border-gray-200 overflow-hidden">
                 {/* The map attaches to this DIV */}
                 <div
